@@ -26,7 +26,7 @@ This system enables users to upload documents (PDF/TXT), ask questions about the
 
 ### Intelligent Booking System
 - Natural Language Processing: Extract booking details from conversational text
-  - Example: "Book for Kishor at 2025-04-10 at 2 pm , email kishor@yahoo.com"
+  - Example: "Book for Kishor at 2025-04-10 at 2 pm , email kishortimilsena2@gmail.com"
 - Automatic Validation:
   - Email format verification
   - Future date validation
