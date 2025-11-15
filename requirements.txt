@@ -1,11 +1,15 @@
+# ===========================================
+# RAG Backend - Python Dependencies
+# Compatible with Python 3.12
+# ===========================================
 
 # Web Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 
 # Data Validation
-pydantic==2.5.0
-pydantic-settings==2.1.0
+pydantic==2.7.4
+pydantic-settings==2.4.0
 email-validator==2.1.0
 
 # Database
@@ -14,7 +18,7 @@ sqlalchemy==2.0.23
 # Vector Database
 qdrant-client==1.7.0
 
-# Embeddings & NLP 
+# Embeddings & NLP (Python 3.12 compatible versions)
 sentence-transformers==2.7.0
 torch==2.3.0
 transformers==4.40.0
@@ -23,8 +27,10 @@ transformers==4.40.0
 groq==0.4.1
 
 # Text Processing
-langchain==0.1.20
-langchain-community==0.0.38
+langchain==0.3.0
+langchain-community==0.3.0
+langchain-core==0.3.0
+langchain-text-splitters==0.3.0
 pdfplumber==0.10.3
 
 # File Handling
