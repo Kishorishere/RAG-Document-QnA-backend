@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This is a backend system that lets you upload documents and ask questions about them using AI. It uses Retrieval-Augmented Generation to find relevant information from your documents and generate accurate answers with source citations. The system also includes a booking feature where you can create appointments through natural language. Built with FastAPI, it uses Qdrant for vector search, Redis for conversation memory, and Groq's LLM for generating responses.
+This is a backend system that lets you upload documents and ask questions about them using AI. It uses Retrieval-Augmented Generation to find relevant information from your documents and generate accurate answers with source citations. The system also includes a booking feature where you can create appointments through natural language. Built with FastAPI, it uses Qdrant for vector search, Redis for conversation memory, and Groq's LLM for generating responses. I have also tried to follow production standards and also flexed a little bit of **MLOPs** skills.
 
 ## Key Features and Tools
 
@@ -35,7 +35,7 @@ You need a Groq API key to use this system. Get one free at console.groq.com
 
 This is the fastest way to get started. You just need Docker installed on your computer.
 
-Create a new folder and add a file called `docker-compose.yml`:
+Create a new folder and add a file called `docker-compose.yml` and paste the below code:
 
 ```yaml
 services:
@@ -54,11 +54,11 @@ services:
       - redis_data:/data
 
   rag-backend:
-    image: kishorishere/rag-backend:latest
+    image: kishorishere/rag-backend:latest ## My docker image which is public 
     ports:
       - "8000:8000"
     environment:
-      - GROQ_API_KEY=your_groq_api
+      - GROQ_API_KEY=your_groq_api   ## Insert your api here 
       - QDRANT_URL=http://qdrant:6333
       - REDIS_URL=redis://redis:6379
     depends_on:
