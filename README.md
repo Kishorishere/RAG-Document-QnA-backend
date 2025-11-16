@@ -127,6 +127,14 @@ python run.py
 
 The application will start on http://localhost:8000
 
+
+## Demo Video
+
+If the application does not run on your system, you can watch the full working demo here:
+
+[Watch Demo Video (Google Drive)](https://drive.google.com/file/d/1qfL5TPl0jvJuhMVumKjXtC8ILye64_LU/view?usp=sharing)
+
+
 ## Using the Application
 
 ### 1. Web Interface
