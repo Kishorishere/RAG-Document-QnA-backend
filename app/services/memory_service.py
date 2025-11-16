@@ -1,8 +1,9 @@
-from sqlalchemy.orm import Session
+import redis
+import json
 from typing import List, Dict
+from datetime import datetime
 import logging
 
-from app.database import crud
 from app.models.enums import MessageRole
 from app.core.exceptions import DatabaseException
 
@@ -10,20 +11,20 @@ logger = logging.getLogger(__name__)
 
 
 class MemoryService:
-    """Service for managing conversation memory and history."""
+    """Service for managing conversation memory using Redis."""
     
-    def __init__(self, db: Session):
+    def __init__(self, redis_client: redis.Redis):
         """
-        Initialize memory service.
+        Initialize memory service with Redis client.
         
         Args:
-            db: Database session
+            redis_client: Redis client instance
         """
-        self.db = db
+        self.redis = redis_client
     
     def save_message(self, session_id: str, role: str, message: str) -> Dict:
         """
-        Save a conversation message.
+        Save a conversation message to Redis.
         
         Args:
             session_id: Conversation session ID
@@ -34,30 +35,35 @@ class MemoryService:
             Dictionary with saved message info
         """
         try:
-            conversation = crud.create_conversation_message(
-                db=self.db,
-                session_id=session_id,
-                role=role,
-                message=message
-            )
+            timestamp = datetime.utcnow().isoformat()
+            
+            message_data = {
+                "role": role,
+                "message": message,
+                "timestamp": timestamp
+            }
+            
+            key = f"session:{session_id}:messages"
+            self.redis.rpush(key, json.dumps(message_data))
+            
+            self.redis.hset(f"session:{session_id}:meta", "last_activity", timestamp)
             
             logger.info(f"Saved {role} message for session {session_id}")
             
             return {
-                "id": conversation.id,
-                "session_id": conversation.session_id,
-                "role": conversation.role,
-                "message": conversation.message,
-                "timestamp": conversation.timestamp
+                "session_id": session_id,
+                "role": role,
+                "message": message,
+                "timestamp": timestamp
             }
             
         except Exception as e:
-            logger.error(f"Failed to save message: {str(e)}")
+            logger.error(f"Failed to save message to Redis: {str(e)}")
             raise DatabaseException("save_message", str(e))
     
     def get_conversation_history(self, session_id: str, limit: int = 50) -> List[Dict]:
         """
-        Retrieve conversation history for a session.
+        Retrieve conversation history for a session from Redis.
         
         Args:
             session_id: Conversation session ID
@@ -67,26 +73,24 @@ class MemoryService:
             List of conversation messages
         """
         try:
-            messages = crud.get_conversation_history(
-                db=self.db,
-                session_id=session_id,
-                limit=limit
-            )
+            key = f"session:{session_id}:messages"
             
-            history = [
-                {
-                    "role": msg.role,
-                    "message": msg.message,
-                    "timestamp": msg.timestamp
-                }
-                for msg in messages
-            ]
+            messages_raw = self.redis.lrange(key, -limit, -1)
+            
+            history = []
+            for msg_json in messages_raw:
+                msg = json.loads(msg_json)
+                history.append({
+                    "role": msg["role"],
+                    "message": msg["message"],
+                    "timestamp": msg["timestamp"]
+                })
             
             logger.info(f"Retrieved {len(history)} messages for session {session_id}")
             return history
             
         except Exception as e:
-            logger.error(f"Failed to get conversation history: {str(e)}")
+            logger.error(f"Failed to get conversation history from Redis: {str(e)}")
             raise DatabaseException("get_conversation_history", str(e))
     
     def format_history_for_llm(self, messages: List[Dict]) -> List[Dict]:
@@ -151,10 +155,13 @@ class MemoryService:
             Number of messages deleted
         """
         try:
-            count = crud.delete_conversation_history(
-                db=self.db,
-                session_id=session_id
-            )
+            key = f"session:{session_id}:messages"
+            meta_key = f"session:{session_id}:meta"
+            
+            count = self.redis.llen(key)
+            
+            self.redis.delete(key)
+            self.redis.delete(meta_key)
             
             logger.info(f"Cleared {count} messages from session {session_id}")
             return count
@@ -171,7 +178,22 @@ class MemoryService:
             List of session information
         """
         try:
-            sessions = crud.get_all_sessions(self.db)
+            pattern = "session:*:messages"
+            sessions = []
+            
+            for key in self.redis.scan_iter(match=pattern):
+                session_id = key.decode().split(":")[1]
+                
+                message_count = self.redis.llen(key)
+                
+                meta_key = f"session:{session_id}:meta"
+                last_activity = self.redis.hget(meta_key, "last_activity")
+                
+                sessions.append({
+                    "session_id": session_id,
+                    "message_count": message_count,
+                    "last_activity": last_activity.decode() if last_activity else None
+                })
             
             logger.info(f"Retrieved {len(sessions)} active sessions")
             return sessions
@@ -191,8 +213,8 @@ class MemoryService:
             True if session exists
         """
         try:
-            exists = crud.session_exists(self.db, session_id)
-            return exists
+            key = f"session:{session_id}:messages"
+            return self.redis.exists(key) > 0
             
         except Exception as e:
             logger.error(f"Failed to check session existence: {str(e)}")
@@ -209,8 +231,8 @@ class MemoryService:
             Number of messages
         """
         try:
-            messages = self.get_conversation_history(session_id, limit=10000)
-            return len(messages)
+            key = f"session:{session_id}:messages"
+            return self.redis.llen(key)
             
         except Exception as e:
             logger.error(f"Failed to get message count: {str(e)}")

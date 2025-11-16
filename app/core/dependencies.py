@@ -2,6 +2,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from qdrant_client import QdrantClient
 from groq import Groq
+import redis
 from typing import Generator
 import logging
 
@@ -22,6 +23,7 @@ _qdrant_client = None
 _embedding_service = None
 _vector_store = None
 _groq_client = None
+_redis_client = None
 
 
 def get_qdrant_client() -> QdrantClient:
@@ -104,6 +106,25 @@ def get_groq_client() -> Groq:
     
     return _groq_client
 
+def get_redis_client() -> redis.Redis:
+    """Get or create Redis client instance."""
+    global _redis_client
+    
+    if _redis_client is None:
+        try:
+            settings = get_settings()
+            _redis_client = redis.from_url(
+                settings.redis_url,
+                decode_responses=False,
+                socket_connect_timeout=5
+            )
+            _redis_client.ping()
+            logger.info(f"Redis client connected to {settings.redis_url}")
+        except Exception as e:
+            logger.error(f"Failed to create Redis client: {str(e)}")
+            raise
+    
+    return _redis_client
 
 def get_document_processor() -> DocumentProcessor:
     """Get document processor instance."""
@@ -137,10 +158,10 @@ def get_rag_service(
         raise
 
 
-def get_memory_service(db: Session = Depends(get_db)) -> MemoryService:
+def get_memory_service(redis_client: redis.Redis = Depends(get_redis_client)) -> MemoryService:
     """Get memory service instance."""
     try:
-        return MemoryService(db=db)
+        return MemoryService(redis_client=redis_client)
     except Exception as e:
         logger.error(f"Failed to create memory service: {str(e)}")
         raise

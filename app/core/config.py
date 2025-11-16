@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List,Optional
+from typing import List, Optional
 import os
 
 
@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "documents"
     qdrant_api_key: Optional[str] = None
+
+    #redis
+    redis_url: str = "redis://localhost:6379"
     
     # SQLite Database
     sqlite_url: str = "sqlite:///./storage/sqlite/app.db"
