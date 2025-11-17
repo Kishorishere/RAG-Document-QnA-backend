@@ -145,7 +145,7 @@ Upload a document by selecting a PDF or TXT file and choosing the chunking strat
 
 Ask questions in the chat section. Just type your question and the system will search through your documents and give you an answer with sources.
 
-Create bookings by typing something like "Book an appointment for Sarah on 2025-12-20 at 3pm, email sarah@example.com"
+Create bookings by typing something like "Book an appointment for RAm hari on 2025-12-20 at 3pm, email harihari@email.com"
 
 ### 2. API Documentation
 
